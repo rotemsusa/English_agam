@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>מסע בזמן - עבר הווה עתיד</title>
+<style>
+  :root{
+    --past: #c2185b;
+    --present: #ec4899;
+    --future: #f472b6;
+    --bg: #fff0f6;
+    --ink: #5b2a40;
+    --card: #ffffff;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    min-height:100vh;
+    direction: rtl;
+  }
+  .stars{
+    position:fixed; inset:0; pointer-events:none; overflow:hidden; z-index:0;
+  }
+  .stars span{
+    position:absolute; width:5px; height:5px; background:#ffb6c1; border-radius:50%; opacity:.6;
+    animation: twinkle 3s infinite ease-in-out;
+  }
+  @keyframes twinkle{0%,100%{opacity:.2; transform:scale(1)}50%{opacity:.9; transform:scale(1.6)}}
+
+  header{
+    text-align:center;
+    padding: 28px 16px 16px;
+    position:relative; z-index:1;
+  }
+  header h1{
+    font-size: 2.1rem;
+    margin:0;
+    letter-spacing:1px;
+  }
+  header p{
+    margin:6px 0 0;
+    color:#b86a8c;
+    font-size:1rem;
+  }
+
+  .timeline{
+    display:flex;
+    justify-content:center;
+    gap:14px;
+    margin: 22px auto 8px;
+    max-width: 760px;
+    padding: 0 16px;
+    position:relative; z-index:1;
+  }
+  .tab{
+    flex:1;
+    max-width:220px;
+    border:none;
+    border-radius:18px;
+    padding:14px 8px;
+    font-size:1.05rem;
+    font-weight:700;
+    cursor:pointer;
+    color:#fff;
+    transition: transform .15s ease, box-shadow .15s ease;
+    box-shadow: 0 4px 0 rgba(0,0,0,0.12);
+  }
+  .tab:hover{ transform: translateY(-2px); }
+  .tab:active{ transform: translateY(2px); box-shadow:none; }
+  .tab.past{ background: var(--past); }
+  .tab.present{ background: var(--present); }
+  .tab.future{ background: var(--future); }
+  .tab.test{ background: #9c27b0; }
+  .tab .sub{ display:block; font-size:.75rem; font-weight:400; opacity:.85; margin-top:2px;}
+  .tab.active{ outline: 3px solid #2e2a26; outline-offset: 2px; }
+
+  main{
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 18px 16px 60px;
+    position:relative; z-index:1;
+  }
+
+  .panel{
+    background: var(--card);
+    border-radius: 22px;
+    padding: 22px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+    border-top: 8px solid var(--accent, var(--present));
+    animation: slideIn .35s ease;
+  }
+  @keyframes slideIn{
+    from{ opacity:0; transform: translateY(14px); }
+    to{ opacity:1; transform: translateY(0); }
+  }
+
+  .panel h2{
+    margin-top:0;
+    font-size:1.5rem;
+  }
+  .panel h3{
+    font-size: 1.15rem;
+    margin: 22px 0 10px;
+    color: var(--accent, var(--present));
+  }
+  .rule-box{
+    background:#fde6f0;
+    border-radius:14px;
+    padding:14px 16px;
+    margin: 14px 0;
+    line-height:1.7;
+  }
+  .rule-box ul{ margin: 6px 0; padding-right: 20px; }
+  .example{
+    direction: ltr;
+    text-align:left;
+    font-size:1.1rem;
+    background: #fff5fa;
+    border-radius: 12px;
+    padding: 10px 14px;
+    margin: 8px 0;
+    border: 1px dashed #f4c2da;
+    font-family: 'Georgia', serif;
+  }
+  .example b{ color: var(--accent, var(--present)); }
+
+  /* Vocabulary */
+  .vocab-grid{
+    display:grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px,1fr));
+    gap: 10px;
+    margin: 12px 0 4px;
+  }
+  .vocab-card{
+    background: #fde6f0;
+    border: 1px solid #f9c6dd;
+    border-radius: 12px;
+    padding: 10px 12px;
+    text-align:center;
+    cursor:pointer;
+    transition: background .15s ease, transform .1s ease;
+    user-select:none;
+  }
+  .vocab-card:hover{ transform: translateY(-2px); }
+  .vocab-card .en{
+    direction:ltr;
+    font-family:'Georgia', serif;
+    font-weight:700;
+    font-size: .98rem;
+    color: var(--accent, var(--present));
+  }
+  .vocab-card .he{
+    font-size: .85rem;
+    color:#b86a8c;
+    margin-top:4px;
+    opacity:0;
+    filter: blur(4px);
+    transition: opacity .2s ease, filter .2s ease;
+  }
+  .vocab-card.revealed{
+    background: #fce0f0;
+  }
+  .vocab-card.revealed .he{
+    opacity:1;
+    filter: blur(0);
+  }
+  .vocab-card .he::before{
+    content: "❓ ";
+  }
+  .vocab-card.revealed .he::before{
+    content: "";
+  }
+  .vocab-note{
+    font-size:.9rem;
+    color:#b86a8c;
+    margin: 6px 0 14px;
+  }
+
+  .navbar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-top: 16px;
+    gap: 10px;
+  }
+  .navbtn{
+    background: var(--accent, var(--present));
+    color:#fff;
+    border:none;
+    border-radius: 10px;
+    padding: 10px 18px;
+    font-weight:700;
+    cursor:pointer;
+    font-size:.95rem;
+    flex:1;
+    transition: opacity .15s ease, transform .15s ease;
+  }
+  .navbtn:active{ transform: translateY(1px); }
+  .navbtn:disabled{
+    opacity:.4;
+    cursor:default;
+  }
+  #qPos{
+    font-weight:700;
+    color: var(--accent, var(--present));
+    min-width: 70px;
+    text-align:center;
+    direction: ltr;
+  }
+
+  .quiz{
+    margin-top: 22px;
+    border-top: 2px dashed #f9c6dd;
+    padding-top: 18px;
+  }
+  .q{
+    margin-bottom: 18px;
+    padding: 12px;
+    border-radius: 12px;
+    transition: background .2s ease;
+  }
+  .q.done{ background: #fff5fa; }
+  .q .qnum{
+    font-size:.8rem;
+    color:#e0a0bf;
+    font-weight:700;
+    margin-bottom:4px;
+  }
+  .q .sentence{
+    direction: ltr;
+    text-align:left;
+    font-size:1.12rem;
+    margin-bottom: 8px;
+    font-family: 'Georgia', serif;
+  }
+  .q .sentence .blank{
+    display:inline-block;
+    min-width: 90px;
+    border-bottom: 2px solid var(--accent, var(--present));
+    text-align:center;
+    font-weight:700;
+  }
+  .options{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    direction: ltr;
+  }
+  .opt{
+    border: 2px solid #f4c2da;
+    background:#fff;
+    border-radius: 10px;
+    padding: 8px 16px;
+    font-size: 1rem;
+    cursor:pointer;
+    font-family: 'Georgia', serif;
+    transition: all .15s ease;
+  }
+  .opt:hover{ border-color: var(--accent, var(--present)); }
+  .opt.correct{ background: #d4f4dd; border-color:#4caf50; }
+  .opt.wrong{ background: #fbe1e1; border-color:#e57373; }
+  .opt:disabled{ cursor:default; }
+
+  .feedback{
+    margin-top:8px;
+    font-size:.95rem;
+    min-height: 1.2em;
+    font-weight:600;
+    line-height:1.5;
+    direction: rtl;
+    text-align:right;
+  }
+  .feedback.good{ color:#2e7d32; }
+  .feedback.bad{ color:#c0392b; }
+
+  .scorebar{
+    position:sticky;
+    bottom: 0;
+    background: var(--card);
+    border-radius: 16px;
+    padding: 12px 18px;
+    margin-top: 22px;
+    box-shadow: 0 -4px 14px rgba(0,0,0,0.06);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    font-weight:700;
+  }
+  .scorebar button{
+    background: var(--accent, var(--present));
+    color:#fff;
+    border:none;
+    border-radius: 10px;
+    padding: 8px 16px;
+    font-weight:700;
+    cursor:pointer;
+    font-size:.95rem;
+  }
+  .progress{
+    flex:1;
+    height: 10px;
+    background:#fbd6e6;
+    border-radius:6px;
+    margin: 0 14px;
+    overflow:hidden;
+  }
+  .progress > div{
+    height:100%;
+    background: var(--accent, var(--present));
+    width:0%;
+    transition: width .3s ease;
+  }
+
+  .timeline-graphic{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin: 10px 0 16px;
+    font-size: 1.6rem;
+    direction: ltr;
+  }
+  .timeline-graphic .line{
+    flex:1;
+    height:3px;
+    background: #f9c6dd;
+    position:relative;
+    margin: 0 6px;
+  }
+  .timeline-graphic .dot{
+    width:12px; height:12px; border-radius:50%;
+    background: var(--accent, var(--present));
+  }
+
+  @media (max-width:520px){
+    header h1{ font-size:1.6rem; }
+    .tab{ font-size:.9rem; padding:10px 6px; }
+    .tab .sub{ font-size:.65rem; }
+    .example, .q .sentence{ font-size:1rem; }
+    .vocab-grid{ grid-template-columns: repeat(auto-fill, minmax(110px,1fr)); }
+  }
+</style>
+</head>
+<body>
+
+<div class="stars" id="stars"></div>
+
+<header>
+  <h1>🎀 מסע בזמן באנגלית</h1>
+  <p>עבר • הווה • עתיד — אוצר מילים, הסברים ותרגול מקיף</p>
+</header>
+
+<div class="timeline">
+  <button class="tab past active" data-tense="past" style="--accent:#c2185b">
+    Past
+    <span class="sub">עבר</span>
+  </button>
+  <button class="tab present" data-tense="present" style="--accent:#ec4899">
+    Present
+    <span class="sub">הווה</span>
+  </button>
+  <button class="tab future" data-tense="future" style="--accent:#f472b6">
+    Future
+    <span class="sub">עתיד</span>
+  </button>
+  <button class="tab test" data-tense="test" style="--accent:#9c27b0">
+    Test
+    <span class="sub">מבחן מעורב</span>
+  </button>
+</div>
+
+<main>
+  <div class="panel" id="panel">
+    <!-- filled by JS -->
+  </div>
+</main>
+
+<script>
+/* =========================================================
+   VOCABULARY LISTS
+   ========================================================= */
+const PAST_VOCAB = [
+  {en:"go → went", he:"ללכת"},
+  {en:"eat → ate", he:"לאכול"},
+  {en:"write → wrote", he:"לכתוב"},
+  {en:"see → saw", he:"לראות"},
+  {en:"make → made", he:"להכין / לעשות"},
+  {en:"come → came", he:"לבוא"},
+  {en:"take → took", he:"לקחת"},
+  {en:"give → gave", he:"לתת"},
+  {en:"buy → bought", he:"לקנות"},
+  {en:"have → had", he:"היה לו / יש לו"},
+  {en:"play → played", he:"לשחק"},
+  {en:"watch → watched", he:"לצפות"},
+  {en:"clean → cleaned", he:"לנקות"},
+  {en:"study → studied", he:"ללמוד"},
+  {en:"visit → visited", he:"לבקר"},
+];
+
+const PRESENT_VOCAB = [
+  {en:"play / plays", he:"לשחק"},
+  {en:"watch / watches", he:"לצפות"},
+  {en:"wash / washes", he:"לשטוף / לכבס"},
+  {en:"study / studies", he:"ללמוד"},
+  {en:"fly / flies", he:"לעוף / לטוס"},
+  {en:"like / likes", he:"לאהוב (משהו)"},
+  {en:"work / works", he:"לעבוד"},
+  {en:"live / lives", he:"לחיות / לגור"},
+  {en:"want / wants", he:"לרצות"},
+  {en:"need / needs", he:"להזדקק ל-"},
+  {en:"go / goes", he:"ללכת"},
+  {en:"do / does", he:"לעשות"},
+  {en:"have / has", he:"היה לו / יש לו"},
+  {en:"run / runs", he:"לרוץ"},
+  {en:"clean / cleans", he:"לנקות"},
+];
+
+const FUTURE_VOCAB = [
+  {en:"visit", he:"לבקר"},
+  {en:"travel", he:"לטייל / לנסוע"},
+  {en:"meet", he:"להיפגש"},
+  {en:"finish", he:"לסיים"},
+  {en:"start", he:"להתחיל"},
+  {en:"build", he:"לבנות"},
+  {en:"move", he:"לעבור (מקום)"},
+  {en:"become", he:"להפוך ל-"},
+  {en:"win", he:"לנצח"},
+  {en:"learn", he:"ללמוד (מיומנות)"},
+  {en:"help", he:"לעזור"},
+  {en:"call", he:"להתקשר"},
+  {en:"arrive", he:"להגיע"},
+  {en:"grow", he:"לגדול / לגדל"},
+  {en:"clean", he:"לנקות"},
+];
+
+/* =========================================================
+   QUESTION GENERATORS
+   ========================================================= */
+
+// ---- PAST ----
+const PAST_VERBS = [
+  {b:"play",  p:"played",  t:"plays",  o:"football", r:1},
+  {b:"watch", p:"watched", t:"watches",o:"a movie",   r:1},
+  {b:"clean", p:"cleaned", t:"cleans", o:"his room",  r:1},
+  {b:"study", p:"studied", t:"studies",o:"English",   r:1},
+  {b:"visit", p:"visited", t:"visits", o:"her grandma",r:1},
+  {b:"go",    p:"went",    t:"goes",   o:"to the park",r:0},
+  {b:"eat",   p:"ate",     t:"eats",   o:"pizza",     r:0},
+  {b:"write", p:"wrote",   t:"writes", o:"a letter",  r:0},
+  {b:"see",   p:"saw",     t:"sees",   o:"a bird",    r:0},
+  {b:"make",  p:"made",    t:"makes",  o:"a cake",    r:0},
+  {b:"come",  p:"came",    t:"comes",  o:"home late", r:0},
+  {b:"take",  p:"took",    t:"takes",  o:"the bus",   r:0},
+  {b:"give",  p:"gave",    t:"gives",  o:"a gift",    r:0},
+  {b:"buy",   p:"bought",  t:"buys",   o:"new shoes", r:0},
+  {b:"have",  p:"had",     t:"has",    o:"a great time",r:0},
+];
+const PAST_SUBJ = ["I","You","He","She","We","They","The dog","My friend","The kids","Maya"];
+const PAST_TIME = ["Yesterday","Last night","Last week","Two days ago","Last summer","This morning","An hour ago","Last year","On Sunday","In 2018"];
+const ORDERS = [[0,1,2],[1,2,0],[2,0,1],[1,0,2],[2,1,0],[0,2,1]];
+
+const PAST_HAND = [
+  {sentence:"Yesterday, I ___ to school by bus.", options:["go","went","goes"], answer:"went",
+    why:"'go' הוא פועל יוצא-דופן (irregular) - בעבר הצורה היא 'went'. המילה 'Yesterday' מראה שזה עבר, ולכן לא משתמשים ב-'go' (הווה/בסיס) או ב-'goes' (הווה ל-he/she/it)."},
+  {sentence:"She ___ a letter last night.", options:["write","wrote","writes"], answer:"wrote",
+    why:"'write' הוא יוצא-דופן - בעבר הצורה היא 'wrote'. 'last night' מציין עבר, אז לא מתאימות הצורות 'write'/'writes' שהן הווה."},
+  {sentence:"We ___ TV when it started to rain.", options:["watch","watched","watches"], answer:"watched",
+    why:"הפועל 'started' (עבר) מראה שכל המשפט בעבר, ולכן 'watch' הופך ל-'watched'. 'watches' היא צורת הווה ל-he/she/it."},
+  {sentence:"They ___ in Paris in 2019.", options:["live","lived","living"], answer:"lived",
+    why:"'live' הוא פועל רגיל - בעבר מוסיפים -ed: 'lived'. שנת 2019 מראה שזה עבר, ו-'living' היא צורת ing שלא משמשת לבד."},
+  {sentence:"He ___ his keys this morning.", options:["lose","lost","loses"], answer:"lost",
+    why:"'lose' הוא יוצא-דופן - בעבר הצורה היא 'lost'. 'loses' היא צורת הווה ל-he ולא מתאימה לעבר."},
+  {sentence:"___ you call her yesterday?", options:["Do","Did","Does"], answer:"Did",
+    why:"'yesterday' מציין עבר, ולכן בשאלה משתמשים ב-'Did'. 'Do'/'Does' משמשים לשאלות בהווה."},
+  {sentence:"I ___ not eat breakfast this morning.", options:["did","do","does"], answer:"did",
+    why:"כדי לשלול פעולה בעבר משתמשים ב-'did not'. 'do not'/'does not' הן צורות שלילה בהווה."},
+  {sentence:"My grandma ___ born in 1950.", options:["was","is","were"], answer:"was",
+    why:"בעבר, עם יחיד (he/she/it/grandma) משתמשים ב-'was'. 'is' היא הווה, ו-'were' מתאים לריבוי (we/you/they)."},
+];
+
+function genPastQuestions(){
+  const arr=[];
+  for(let i=0;i<22;i++){
+    const v = PAST_VERBS[i % PAST_VERBS.length];
+    const subj = PAST_SUBJ[i % PAST_SUBJ.length];
+    const time = PAST_TIME[i % PAST_TIME.length];
+    const sentence = `${time}, ${subj} ___ ${v.o}.`;
+    const opts = [v.b, v.p, v.t];
+    const order = ORDERS[i % ORDERS.length];
+    const options = order.map(idx => opts[idx]);
+    const ruleText = v.r
+      ? `'${v.b}' הוא פועל רגיל - בעבר מוסיפים -ed ⟶ '${v.p}'.`
+      : `'${v.b}' הוא פועל יוצא-דופן (irregular) - הצורה בעבר היא '${v.p}', לא לפי כלל ה-ed.`;
+    const why = `${ruleText} המילה '${time}' מראה שזה עבר, ולכן לא מתאימות '${v.b}' (הווה/בסיס) או '${v.t}' (הווה ל-he/she/it).`;
+    arr.push({sentence, options, answer:v.p, why});
+  }
+  return arr;
+}
+
+// ---- PRESENT ----
+const PRES_VERBS = [
+  {b:"play",  t:"plays",  ing:"playing",  o:"football",        type:"s"},
+  {b:"watch", t:"watches",ing:"watching", o:"TV",               type:"es"},
+  {b:"wash",  t:"washes", ing:"washing",  o:"the dishes",       type:"es"},
+  {b:"study", t:"studies",ing:"studying", o:"English",          type:"ies"},
+  {b:"fly",   t:"flies",  ing:"flying",   o:"to Eilat",         type:"ies"},
+  {b:"like",  t:"likes",  ing:"liking",   o:"ice cream",        type:"s"},
+  {b:"work",  t:"works",  ing:"working",  o:"hard",             type:"s"},
+  {b:"live",  t:"lives",  ing:"living",   o:"in Israel",        type:"s"},
+  {b:"want",  t:"wants",  ing:"wanting",  o:"a new bike",       type:"s"},
+  {b:"need",  t:"needs",  ing:"needing",  o:"help",             type:"s"},
+  {b:"go",    t:"goes",   ing:"going",    o:"to school",        type:"es"},
+  {b:"do",    t:"does",   ing:"doing",    o:"homework",         type:"es"},
+  {b:"have",  t:"has",    ing:"having",   o:"a dog",            type:"irr"},
+  {b:"run",   t:"runs",   ing:"running",  o:"every morning",    type:"s"},
+  {b:"clean", t:"cleans", ing:"cleaning", o:"his room",         type:"s"},
+];
+const PRES_SUBJ_3RD  = ["He","She","It","My sister","The teacher","Tom","The cat","My dad"];
+const PRES_SUBJ_BASE = ["I","You","We","They","My friends","The kids"];
+const PRES_TIME = ["every day","usually","always","every morning","on Sundays","every week","often","every year","every evening","sometimes"];
+
+const PRESENT_HAND = [
+  {sentence:"She ___ to school every day.", options:["go","goes","going"], answer:"goes",
+    why:"עם 'she' (he/she/it) מוסיפים -s/-es: 'goes'. 'go' מתאים ל-I/you/we/they, ו-'going' דורשת 'is' לפניה."},
+  {sentence:"My brother ___ pizza every Friday.", options:["eat","eats","eating"], answer:"eats",
+    why:"'brother' = he, אז מוסיפים -s: 'eats'. 'eat' מתאים לגופים אחרים, ו-'eating' דורשת 'is' לפניה."},
+  {sentence:"I ___ my teeth twice a day.", options:["brush","brushes","brushing"], answer:"brush",
+    why:"עם 'I' לא מוסיפים -s: 'brush'. 'brushes' מתאים ל-he/she/it, ו-'brushing' דורשת 'am' לפניה."},
+  {sentence:"It ___ a lot in winter here.", options:["rain","rains","raining"], answer:"rains",
+    why:"'it' הוא he/she/it, אז מוסיפים -s: 'rains'. 'rain' מתאים לגופים אחרים, ו-'raining' דורשת 'is'."},
+  {sentence:"They ___ not speak French.", options:["do","does","did"], answer:"do",
+    why:"'they' הוא ריבוי - שלילה בהווה היא 'do not'. 'does not' מתאים ל-he/she/it, ו-'did not' הוא עבר."},
+  {sentence:"___ your dad work on Sundays?", options:["Do","Does","Is"], answer:"Does",
+    why:"'your dad' = he, ולכן בשאלת הווה משתמשים ב-'Does'. 'Do' מתאים לגופים אחרים, ו-'Is' לא בא לפני 'work' בהווה פשוט."},
+  {sentence:"We ___ TV after dinner most nights.", options:["watch","watches","watched"], answer:"watch",
+    why:"עם 'we' לא מוסיפים -s: 'watch'. 'watches' מתאים ל-he/she/it, ו-'watched' הוא עבר - אבל 'most nights' מתאר הרגל קבוע בהווה."},
+  {sentence:"The sun ___ in the east.", options:["rise","rises","rose"], answer:"rises",
+    why:"'the sun' = it (he/she/it), אז מוסיפים -s: 'rises'. 'rose' הוא עבר, אבל זו עובדה קבועה - הווה פשוט."},
+];
+
+function genPresentQuestions(){
+  const arr=[];
+  for(let i=0;i<22;i++){
+    const v = PRES_VERBS[i % PRES_VERBS.length];
+    const use3rd = i % 2 === 0;
+    const subj = use3rd ? PRES_SUBJ_3RD[i % PRES_SUBJ_3RD.length] : PRES_SUBJ_BASE[i % PRES_SUBJ_BASE.length];
+    const time = PRES_TIME[i % PRES_TIME.length];
+    const sentence = `${subj} ___ ${v.o} ${time}.`;
+    const correct = use3rd ? v.t : v.b;
+    const opts = [v.b, v.t, v.ing];
+    const order = ORDERS[i % ORDERS.length];
+    const options = order.map(idx => opts[idx]);
+    let rule;
+    if(use3rd){
+      if(v.type==='s')   rule = `עם '${subj}' (he/she/it) מוסיפים -s: '${v.t}'.`;
+      else if(v.type==='es') rule = `עם '${subj}' (he/she/it) מוסיפים -es: '${v.t}'.`;
+      else if(v.type==='ies') rule = `עם '${subj}' (he/she/it), כש-y מגיעה אחרי עיצור היא הופכת ל-ies: '${v.t}'.`;
+      else rule = `'${v.b}' הוא פועל מיוחד - עם '${subj}' (he/she/it) הצורה היא '${v.t}'.`;
+    } else {
+      rule = `עם '${subj}' (I/you/we/they) הפועל נשאר בצורת הבסיס, בלי -s: '${v.b}'.`;
+    }
+    const extra = `המילה '${time}' מראה שזו פעולה קבועה / הרגל - הווה פשוט.`;
+    arr.push({sentence, options, answer:correct, why: rule + " " + extra});
+  }
+  return arr;
+}
+
+// ---- FUTURE ----
+const FUT_VERBS = [
+  {b:"visit",  p:"visited",  t:"visits",  ing:"visiting",  o:"my cousins"},
+  {b:"travel", p:"traveled", t:"travels", ing:"traveling", o:"to Italy"},
+  {b:"meet",   p:"met",      t:"meets",   ing:"meeting",   o:"my friends"},
+  {b:"finish", p:"finished", t:"finishes",ing:"finishing", o:"the project"},
+  {b:"start",  p:"started",  t:"starts",  ing:"starting",  o:"a new class"},
+  {b:"build",  p:"built",    t:"builds",  ing:"building",  o:"a sandcastle"},
+  {b:"move",   p:"moved",    t:"moves",   ing:"moving",    o:"to a new house"},
+  {b:"become", p:"became",   t:"becomes", ing:"becoming",  o:"a doctor"},
+  {b:"win",    p:"won",      t:"wins",    ing:"winning",   o:"the game"},
+  {b:"learn",  p:"learned",  t:"learns",  ing:"learning",  o:"to swim"},
+  {b:"help",   p:"helped",   t:"helps",   ing:"helping",   o:"my mom"},
+  {b:"call",   p:"called",   t:"calls",   ing:"calling",   o:"you"},
+  {b:"arrive", p:"arrived",  t:"arrives", ing:"arriving",  o:"on time"},
+  {b:"grow",   p:"grew",     t:"grows",   ing:"growing",   o:"tomatoes"},
+  {b:"clean",  p:"cleaned",  t:"cleans",  ing:"cleaning",  o:"the house"},
+];
+const FUT_SUBJ = ["I","You","He","She","We","They","My family","The students","Maya","The team"];
+const FUT_TIME = ["Tomorrow","Next week","Next year","Soon","Next month","Next summer","Tonight","In two days","Next Monday","In the future"];
+
+const FUTURE_HAND = [
+  {sentence:"Tomorrow, I ___ visit my friend.", options:["will","am","do"], answer:"will",
+    why:"לעתיד משתמשים ב-'will' + פועל בסיסי. 'am'/'do' לא בונים זמן עתיד פשוט."},
+  {sentence:"She ___ not be at school tomorrow.", options:["will","is","does"], answer:"will",
+    why:"'tomorrow' מציין עתיד, אז השלילה היא 'will not'. 'is not'/'does not' הן צורות הווה."},
+  {sentence:"___ you come to my party next week?", options:["Will","Are","Do"], answer:"Will",
+    why:"'next week' מציין עתיד, אז בשאלה משתמשים ב-'Will'. 'Are'/'Do' מתאימים להווה."},
+  {sentence:"They ___ travel to Italy next year.", options:["will","willing","wills"], answer:"will",
+    why:"'will' נשאר 'will' בכל הגופים - אין 'wills'. 'willing' היא מילה אחרת שמשמעותה 'מוכן'."},
+  {sentence:"We ___ going to watch a movie tonight.", options:["is","are","will"], answer:"are",
+    why:"במבנה 'going to' צריך פועל 'be' שמתאים לנושא - עם 'we' זה 'are' (are going to). 'is' מתאים ל-he/she/it, ו-'will' לא מתחבר ל-going to."},
+  {sentence:"I think it ___ rain later.", options:["will","wills","willing"], answer:"will",
+    why:"'will' נשאר 'will' לכל הגופים - אין 'wills' ואין 'willing' בזמן עתיד."},
+  {sentence:"He ___ won't forget your birthday.", options:["will","is","did"], answer:"will",
+    why:"לפני 'won't' (=will not) מתאים 'will' כחלק מהמשפט. 'is'/'did' לא משתלבים נכון עם המבנה הזה."},
+  {sentence:"Next year, we ___ be in 8th grade.", options:["will","was","did"], answer:"will",
+    why:"'Next year' מציין עתיד ⟶ 'will'. 'was'/'did' הן צורות עבר."},
+];
+
+function genFutureQuestions(){
+  const arr=[];
+  for(let i=0;i<22;i++){
+    const v = FUT_VERBS[i % FUT_VERBS.length];
+    const subj = FUT_SUBJ[i % FUT_SUBJ.length];
+    const time = FUT_TIME[i % FUT_TIME.length];
+    const sentence = `${time}, ${subj} will ___ ${v.o}.`;
+    const opts = [v.b, v.p, v.t];
+    const order = ORDERS[i % ORDERS.length];
+    const options = order.map(idx => opts[idx]);
+    const why = `אחרי 'will' מגיעה תמיד צורת הבסיס (base form) של הפועל, בלי -s ובלי -ed: '${v.b}'. '${v.p}' היא צורת עבר ו-'${v.t}' היא צורת הווה ל-he/she/it - שתיהן לא מתאימות אחרי will.`;
+    arr.push({sentence, options, answer:v.b, why});
+  }
+  return arr;
+}
+
+/* =========================================================
+   MAIN DATA
+   ========================================================= */
+const data = {
+  past: {
+    color: "#c2185b",
+    title: "Past Simple — עבר פשוט",
+    rule: `
+      <p>משתמשים כשמדברים על דבר שכבר <b>קרה והסתיים</b> בעבר.</p>
+      <ul>
+        <li>פעלים רגילים: מוסיפים <b>-ed</b> בסוף → play → play<b>ed</b></li>
+        <li>פעלים לא רגילים (Irregular): צורה משלהם → go → <b>went</b>, eat → <b>ate</b></li>
+        <li>שלילה: did not (didn't) + פועל בסיסי</li>
+        <li>שאלה: Did + נושא + פועל בסיסי?</li>
+        <li>הצורה <b>אותה צורה לכל הגופים</b> - I/you/he/she/we/they went</li>
+      </ul>
+      <p>מילות זמן נפוצות: <i>yesterday, last night/week/year, ago, in 2010</i></p>
+    `,
+    examples: [
+      `I <b>played</b> football yesterday.`,
+      `She <b>went</b> to the park last week.`,
+      `They <b>didn't watch</b> the movie.`,
+      `<b>Did</b> you <b>finish</b> your homework?`,
+      `We <b>had</b> a great day at the beach.`,
+      `<b>Did</b> she <b>visit</b> her grandma? — Yes, she <b>did</b>.`
+    ],
+    timeline: ["⬅️ קרה אז", "עכשיו", "עתיד"],
+    vocab: PAST_VOCAB,
+    vocabNote: "שימי לב: לפעלים יוצאי-דופן (irregular) יש צורת עבר משלהם, ולא נוסיף -ed.",
+    questions: PAST_HAND.concat(genPastQuestions())
+  },
+  present: {
+    color: "#ec4899",
+    title: "Present Simple — הווה פשוט",
+    rule: `
+      <p>משתמשים לתיאור <b>הרגלים, עובדות ודברים שקורים בקביעות</b>.</p>
+      <ul>
+        <li>הוא/היא/זה (he/she/it): מוסיפים <b>-s</b> או <b>-es</b> → play → play<b>s</b>, watch → watch<b>es</b></li>
+        <li>פועל שמסתיים ב-y אחרי עיצור: y → ies → study → stud<b>ies</b></li>
+        <li>שאר הגופים: צורת הבסיס → I/you/we/they <b>play</b></li>
+        <li>שלילה: don't / doesn't + פועל בסיסי</li>
+        <li>שאלה: Do/Does + נושא + פועל בסיסי?</li>
+      </ul>
+      <p>מילות זמן נפוצות: <i>always, usually, often, sometimes, every day, on Mondays, never</i></p>
+    `,
+    examples: [
+      `I <b>play</b> football every day.`,
+      `She <b>watches</b> TV every evening.`,
+      `He <b>doesn't like</b> coffee.`,
+      `<b>Do</b> they <b>live</b> in Israel?`,
+      `My dad <b>works</b> at a hospital.`,
+      `We <b>have</b> a small dog at home.`
+    ],
+    timeline: ["עבר", "👉 קורה כל הזמן", "עתיד"],
+    vocab: PRESENT_VOCAB,
+    vocabNote: "שימי לב: עם he/she/it מוסיפים -s, -es או -ies. עם כל השאר - צורת הבסיס.",
+    questions: PRESENT_HAND.concat(genPresentQuestions())
+  },
+  future: {
+    color: "#f472b6",
+    title: "Future Simple — עתיד",
+    rule: `
+      <p>משתמשים לתיאור דברים שעוד <b>יקרו</b> או תוכניות לעתיד.</p>
+      <ul>
+        <li>נוסחה: <b>will</b> + פועל בסיסי → I <b>will go</b></li>
+        <li>קיצור: I'll, you'll, she'll...</li>
+        <li>שלילה: will not (won't) + פועל בסיסי</li>
+        <li>שאלה: Will + נושא + פועל בסיסי?</li>
+        <li>תוכניות מוכנות מראש: <b>going to</b> + פועל → I'm <b>going to travel</b></li>
+        <li>'will' <b>לא משתנה</b> לפי הגוף - תמיד 'will', לעולם לא 'wills'</li>
+      </ul>
+      <p>מילות זמן נפוצות: <i>tomorrow, next week/month/year, soon, in 2030</i></p>
+    `,
+    examples: [
+      `I <b>will visit</b> my grandma tomorrow.`,
+      `She <b>won't come</b> to the party.`,
+      `<b>Will</b> you <b>help</b> me with my homework?`,
+      `We <b>are going to travel</b> next summer.`,
+      `Next year, he <b>will become</b> a teacher.`,
+      `I <b>won't be</b> late again!`
+    ],
+    timeline: ["עבר", "הווה", "➡️ עוד יקרה"],
+    vocab: FUTURE_VOCAB,
+    vocabNote: "שימי לב: אחרי 'will' מגיע תמיד הפועל בצורת הבסיס שלו, בלי -s ובלי -ed.",
+    questions: FUTURE_HAND.concat(genFutureQuestions())
+  }
+};
+
+// ---- TEST MODE: shuffled mix from all tenses ----
+function shuffleArr(arr){
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+  return a;
+}
+data.test = {
+  color: "#9c27b0",
+  title: "מבחן מעורב — עבר / הווה / עתיד",
+  isTest: true,
+  questions: shuffleArr(
+    data.past.questions.concat(data.present.questions, data.future.questions)
+  ).slice(0, 30)
+};
+
+let currentTense = "past";
+let answered = {};
+let currentQ = {};
+
+function renderStars(){
+  const container = document.getElementById('stars');
+  for(let i=0;i<25;i++){
+    const s = document.createElement('span');
+    s.style.left = Math.random()*100+'%';
+    s.style.top = Math.random()*100+'%';
+    s.style.animationDelay = (Math.random()*3)+'s';
+    container.appendChild(s);
+  }
+}
+
+function renderPanel(tense){
+  const t = data[tense];
+  answered[tense] = answered[tense] || new Array(t.questions.length).fill(false);
+  const panel = document.getElementById('panel');
+  panel.style.setProperty('--accent', t.color);
+
+  let html = `<h2>${t.title}</h2>`;
+  if(t.isTest){
+    html += `<div class="rule-box">🌟 ערבוב של שאלות מעבר, הווה ועתיד - בלי רמזים מראש. בהצלחה!</div>`;
+  } else {
+  html += `<div class="timeline-graphic">
+      <span>${t.timeline[0]}</span><div class="line"></div>
+      <span class="dot"></span><div class="line"></div>
+      <span>${t.timeline[2]}</span>
+    </div>`;
+  html += `<div class="rule-box">${t.rule}</div>`;
+
+  html += `<h3>📚 אוצר מילים</h3>`;
+  html += `<div class="vocab-note">🔍 נסה לדעת את התרגום לפני שאתה לוחץ! לחץ על הכרטיס כדי לראות את התרגום לעברית.</div>`;
+  html += `<div class="vocab-grid">`;
+  t.vocab.forEach(w => {
+    html += `<div class="vocab-card" onclick="this.classList.toggle('revealed')"><div class="en">${w.en}</div><div class="he">${w.he}</div></div>`;
+  });
+  html += `</div>`;
+  html += `<div class="vocab-note">💡 ${t.vocabNote}</div>`;
+
+  html += `<h3>✍️ דוגמאות</h3>`;
+  t.examples.forEach(e => {
+    html += `<div class="example">${e}</div>`;
+  });
+  }
+
+  html += `<div class="quiz"><h3>🎯 ${t.isTest ? 'מבחן' : 'תרגול'} - ${t.questions.length} שאלות</h3>`;
+  html += `<div id="qContainer"></div>`;
+  html += `<div class="navbar">
+    <button id="prevBtn" class="navbtn">➡️ קודם</button>
+    <span id="qPos"></span>
+    <button id="nextBtn" class="navbtn">⬅️ הבא</button>
+  </div>`;
+  html += `</div>`;
+
+  html += `<div class="scorebar">
+    <span id="scoreText">0 / ${t.questions.length}</span>
+    <div class="progress"><div id="progressBar"></div></div>
+    <button id="resetBtn">איפוס</button>
+  </div>`;
+
+  panel.innerHTML = html;
+  currentQ[tense] = currentQ[tense] || 0;
+  renderQuestion(tense);
+  updateScore(tense);
+}
+
+function renderQuestion(tense){
+  const t = data[tense];
+  const idx = currentQ[tense];
+  const q = t.questions[idx];
+  const parts = q.sentence.split('___');
+  const container = document.getElementById('qContainer');
+
+  let html = `<div class="q" data-index="${idx}">
+      <div class="sentence">${parts[0]}<span class="blank">&nbsp;&nbsp;&nbsp;&nbsp;</span>${parts[1]}</div>
+      <div class="options">
+        ${q.options.map(o => `<button class="opt" data-opt="${o}">${o}</button>`).join('')}
+      </div>
+      <div class="feedback"></div>
+    </div>`;
+  container.innerHTML = html;
+
+  document.getElementById('qPos').textContent = `${idx+1} / ${t.questions.length}`;
+  document.getElementById('prevBtn').disabled = idx === 0;
+  document.getElementById('nextBtn').disabled = idx === t.questions.length - 1;
+
+  const qEl = container.querySelector('.q');
+  const correct = q.answer;
+  const why = q.why;
+  const feedback = qEl.querySelector('.feedback');
+  const opts = qEl.querySelectorAll('.opt');
+
+  if(answered[tense][idx]){
+    qEl.classList.add('done');
+    opts.forEach(o => {
+      o.disabled = true;
+      if(o.dataset.opt === correct) o.classList.add('correct');
+    });
+    feedback.textContent = "✅ נכון! " + why;
+    feedback.classList.add('good');
+  }
+
+  opts.forEach(opt => {
+    opt.addEventListener('click', () => {
+      if(answered[tense][idx]) return;
+      const chosen = opt.dataset.opt;
+      if(chosen === correct){
+        opt.classList.add('correct');
+        feedback.textContent = "✅ נכון! " + why;
+        feedback.classList.remove('bad');
+        feedback.classList.add('good');
+        answered[tense][idx] = true;
+        qEl.classList.add('done');
+        opts.forEach(o => o.disabled = true);
+        updateScore(tense);
+      } else {
+        opt.classList.add('wrong');
+        feedback.textContent = "❌ " + why;
+        feedback.classList.remove('good');
+        feedback.classList.add('bad');
+        setTimeout(()=> opt.classList.remove('wrong'), 600);
+      }
+    });
+  });
+}
+
+function updateScore(tense){
+  const t = data[tense];
+  const score = answered[tense].filter(Boolean).length;
+  const total = t.questions.length;
+  document.getElementById('scoreText').textContent = `${score} / ${total}`;
+  document.getElementById('progressBar').style.width = (score/total*100)+'%';
+}
+
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    currentTense = tab.dataset.tense;
+    renderPanel(currentTense);
+  });
+});
+
+document.addEventListener('click', (e) => {
+  if(e.target.id === 'resetBtn'){
+    answered[currentTense] = new Array(data[currentTense].questions.length).fill(false);
+    currentQ[currentTense] = 0;
+    renderPanel(currentTense);
+  }
+  if(e.target.id === 'prevBtn'){
+    if(currentQ[currentTense] > 0){
+      currentQ[currentTense]--;
+      renderQuestion(currentTense);
+    }
+  }
+  if(e.target.id === 'nextBtn'){
+    const total = data[currentTense].questions.length;
+    if(currentQ[currentTense] < total - 1){
+      currentQ[currentTense]++;
+      renderQuestion(currentTense);
+    }
+  }
+});
+
+renderStars();
+renderPanel(currentTense);
+</script>
+
+</body>
+</html>
